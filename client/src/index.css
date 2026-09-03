@@ -1,0 +1,109 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  --color-surface: #e1d8fa;
+  --color-sidebar: #e1d8fa;
+  --color-sidebar-hover: #d9cff8;
+  --color-sidebar-active: #ffffff;
+  --color-content-panel: #fafafb;
+  --color-card: #ffffff;
+  --color-card-muted: #f4f4f5;
+  --color-card-purple: #f3f0ff;
+  --color-search: #d4c9f5;
+  --color-nav-chip: #cdc4f3;
+  --color-nav-chip-hover: #c4b8f0;
+  --color-nav-search: #cdc4f3;
+  --color-border: #e5e7eb;
+  --color-border-subtle: #f3f4f6;
+  --color-text-primary: #111827;
+  --color-text-secondary: #6b7280;
+  --color-text-muted: #9ca3af;
+  --color-accent-purple: #8b5cf6;
+  --color-accent-purple-light: #ede9fe;
+  --color-promo: #fff8e6;
+  --color-accent-yellow: #fde68a;
+  --color-accent-green: #a7d7af;
+  --color-accent-orange: #fdba74;
+  --color-accent-blue: #93c5fd;
+
+  --radius-card: 1rem;
+  --radius-panel: 2rem;
+  --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.04);
+  --shadow-panel: none;
+  --shadow-card-hover: 0 4px 12px -2px rgb(0 0 0 / 0.06);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply antialiased h-full overflow-hidden;
+  }
+
+  body {
+    @apply m-0 h-full overflow-hidden bg-surface font-sans text-text-primary;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  #root {
+    @apply h-full overflow-hidden;
+  }
+
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  a[href] {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [aria-disabled='true'] {
+    cursor: not-allowed;
+  }
+
+  html.public-scroll,
+  html.public-scroll body,
+  html.public-scroll #root {
+    height: auto !important;
+    min-height: 100% !important;
+    overflow: auto !important;
+  }
+
+  .auth-floating-input:-webkit-autofill,
+  .auth-floating-input:-webkit-autofill:hover,
+  .auth-floating-input:-webkit-autofill:focus {
+    -webkit-text-fill-color: #000000;
+    box-shadow: 0 0 0 1000px #f1f1f1 inset;
+    caret-color: #000000;
+    transition: background-color 9999s ease-out;
+  }
+}
+
+@layer components {
+  .help-feature-split {
+    display: grid;
+    grid-template-columns: minmax(280px, 460px) minmax(360px, 1fr);
+    align-items: center;
+    gap: 3rem;
+  }
+
+  .help-feature-visual {
+    width: 100%;
+    max-width: 640px;
+    justify-self: end;
+  }
+
+  @media (max-width: 760px) {
+    .help-feature-split {
+      grid-template-columns: 1fr;
+    }
+
+    .help-feature-visual {
+      max-width: none;
+      justify-self: stretch;
+    }
+  }
+}

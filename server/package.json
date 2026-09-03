@@ -1,0 +1,43 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "description": "ProjectFlow API Server",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "nodemon --watch src --ext ts --exec \"tsc && node dist/index.js\"",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "db:init": "node scripts/initDb.js",
+    "db:migrate-memberships": "node scripts/migrateMemberships.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "cloudinary": "^2.11.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.7.0",
+    "ioredis": "^5.6.1",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.13.2",
+    "multer": "^2.3.0",
+    "nodemailer": "^9.0.6",
+    "redis": "^5.6.0",
+    "socket.io": "^4.8.3"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.1",
+    "@types/jsonwebtoken": "^9.0.9",
+    "@types/multer": "^2.2.0",
+    "@types/node": "^22.14.0",
+    "@types/nodemailer": "^8.0.1",
+    "nodemon": "^3.1.10",
+    "typescript": "^5.8.3"
+  }
+}
