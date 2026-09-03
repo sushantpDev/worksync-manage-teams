@@ -17,7 +17,12 @@ export function connectCommunicationSocket(): Socket | null {
     socket.disconnect()
   }
 
-  socket = io(window.location.origin, {
+  const SOCKET_URL =
+    import.meta.env.VITE_SOCKET_URL ||
+    import.meta.env.VITE_API_URL?.replace(/\/api\/?$/, '') ||
+    window.location.origin
+
+  socket = io(SOCKET_URL, {
     auth: { token, organizationId },
     transports: ['websocket', 'polling'],
     autoConnect: true,

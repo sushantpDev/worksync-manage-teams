@@ -43,7 +43,7 @@ import { orgStorage } from './orgStorage'
 import { tokenStorage } from './tokenStorage'
 import { triggerFileDownload } from './utils'
 
-const API_BASE = '/api'
+const API_BASE = import.meta.env.VITE_API_URL || '/api'
 
 export class ApiError extends Error {
   status: number
