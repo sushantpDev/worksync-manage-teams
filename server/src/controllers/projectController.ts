@@ -149,6 +149,12 @@ async function serializeProjects(orgId: string, projects: InstanceType<typeof Pr
   return projects.map((project) => mapProject(project, userMap, teamsMap))
 }
 
+async function invalidateProjectCaches(orgId: string) {
+  await cacheDel(`projects:list:${orgId}:full`)
+  await cacheDel(`projects:list:${orgId}`)
+  await cacheDel(`dashboard:${orgId}`)
+}
+
 export async function listProjects(req: AuthRequest, res: Response): Promise<void> {
   try {
     const orgId = req.organizationId ?? req.user!.organizationId
@@ -279,8 +285,7 @@ export async function createProject(req: AuthRequest, res: Response): Promise<vo
       memberIds: normalizedMembers,
     })
 
-    await cacheDel(`projects:list:${orgId}:full`)
-    await cacheDel(`projects:list:${orgId}`)
+    await invalidateProjectCaches(orgId)
 
     await logActivity({
       organizationId: orgId,
@@ -363,8 +368,7 @@ export async function updateProject(req: AuthRequest, res: Response): Promise<vo
       return
     }
 
-    await cacheDel(`projects:list:${orgId}:full`)
-    await cacheDel(`projects:list:${orgId}`)
+    await invalidateProjectCaches(orgId)
 
     await logActivity({
       organizationId: orgId,
@@ -447,8 +451,7 @@ export async function updateProjectTeam(req: AuthRequest, res: Response): Promis
       return
     }
 
-    await cacheDel(`projects:list:${orgId}:full`)
-    await cacheDel(`projects:list:${orgId}`)
+    await invalidateProjectCaches(orgId)
 
     await logActivity({
       organizationId: orgId,
@@ -480,8 +483,7 @@ export async function deleteProject(req: AuthRequest, res: Response): Promise<vo
       return
     }
 
-    await cacheDel(`projects:list:${orgId}:full`)
-    await cacheDel(`projects:list:${orgId}`)
+    await invalidateProjectCaches(orgId)
     res.json({ message: 'Project deleted' })
   } catch (error) {
     res.status(500).json({ error: (error as Error).message })

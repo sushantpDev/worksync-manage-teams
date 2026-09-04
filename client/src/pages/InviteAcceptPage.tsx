@@ -54,7 +54,7 @@ export function InviteAcceptPage() {
 
     try {
       const result = await invitationsApi.accept(token)
-      tokenStorage.setTokens(result.accessToken, result.refreshToken)
+      tokenStorage.setAccessToken(result.accessToken)
       if (result.organization?.id) {
         orgStorage.setOrganizationId(result.organization.id)
       }

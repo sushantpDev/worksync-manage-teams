@@ -10,6 +10,7 @@ import { sendInvitationEmail } from '../services/emailService'
 import { generateInvitationToken, hashInvitationToken } from '../services/invitationToken'
 import { isValidEmail } from '../utils/validation'
 import { logActivity } from '../services/activityService'
+import { setRefreshCookie } from '../utils/refreshCookie'
 
 function paramId(value: string | string[]): string {
   return Array.isArray(value) ? value[0] : value
@@ -237,7 +238,7 @@ export async function acceptInvitation(req: AuthRequest, res: Response): Promise
     const tokenHash = hashInvitationToken(token)
     const userId = req.user!.userId
 
-    const user = await User.findById(userId)
+    const user = await User.findById(userId).select('+refreshToken')
     if (!user) {
       res.status(404).json({ error: 'User not found' })
       return
@@ -311,6 +312,7 @@ export async function acceptInvitation(req: AuthRequest, res: Response): Promise
     const refreshToken = generateRefreshToken(tokenPayload)
     user.refreshToken = refreshToken
     await user.save()
+    setRefreshCookie(res, refreshToken)
 
     res.json({
       message: 'Invitation accepted',
@@ -328,7 +330,6 @@ export async function acceptInvitation(req: AuthRequest, res: Response): Promise
           }
         : null,
       accessToken,
-      refreshToken,
     })
   } catch (error) {
     res.status(500).json({ error: (error as Error).message })

@@ -260,8 +260,8 @@ export function SettingsPage() {
         email: normalizedEmail,
       })
 
-      if (response.accessToken && response.refreshToken) {
-        tokenStorage.setTokens(response.accessToken, response.refreshToken)
+      if (response.accessToken) {
+        tokenStorage.setAccessToken(response.accessToken)
       }
 
       await refreshSession()

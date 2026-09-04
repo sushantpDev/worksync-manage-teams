@@ -104,7 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       applySession(mapped.user, mapped.organization, mapped.organizations)
       return
     } catch (error) {
-      if (error instanceof ApiError && error.status === 401 && tokenStorage.getRefreshToken()) {
+      if (error instanceof ApiError && error.status === 401) {
         const refreshed = await refreshAccessToken()
         if (refreshed) {
           const me = await authApi.me()
@@ -124,7 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(
     async (email: string, password: string) => {
       const response = await authApi.login(email, password)
-      tokenStorage.setTokens(response.accessToken, response.refreshToken)
+      tokenStorage.setAccessToken(response.accessToken)
       applySession(
         response.user as User,
         response.organization ?? null,
@@ -141,7 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = useCallback(
     async (payload: RegisterPayload) => {
       const response = await authApi.register(payload)
-      tokenStorage.setTokens(response.accessToken, response.refreshToken)
+      tokenStorage.setAccessToken(response.accessToken)
       applySession(
         response.user as User,
         response.organization ?? null,
@@ -170,7 +170,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const switchOrganization = useCallback(
     async (organizationId: string) => {
       const response = await organizationsApi.switch(organizationId)
-      tokenStorage.setTokens(response.accessToken, response.refreshToken)
+      tokenStorage.setAccessToken(response.accessToken)
       applySession(response.user as User, response.organization ?? null, organizations)
       await loadCurrentUser()
     },
@@ -180,7 +180,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const createOrganization = useCallback(
     async (name: string) => {
       const response = await organizationsApi.create(name)
-      tokenStorage.setTokens(response.accessToken, response.refreshToken)
+      tokenStorage.setAccessToken(response.accessToken)
       await loadCurrentUser()
     },
     [loadCurrentUser]

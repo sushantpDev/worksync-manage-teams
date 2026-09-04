@@ -4,6 +4,7 @@ import { Notification } from '../models/Notification'
 import { Project } from '../models/Project'
 import { Task } from '../models/Task'
 import { User } from '../models/User'
+import { cacheGet, cacheSet } from '../config/redis'
 import type { AuthRequest } from '../middleware/auth'
 import type { MembershipRole } from '../models/Membership'
 import {
@@ -181,6 +182,20 @@ export async function getDashboard(req: AuthRequest, res: Response): Promise<voi
     const userId = req.user!.userId
     const role = getRole(req)
     const now = new Date()
+    const cacheKey = `dashboard:${orgId}`
+
+    const cached = await cacheGet<unknown>(cacheKey)
+    if (cached) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[cache] dashboard hit')
+      }
+      res.json(cached)
+      return
+    }
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[cache] dashboard miss')
+    }
 
     const chartStart = new Date(now)
     chartStart.setDate(chartStart.getDate() - 90)
@@ -314,7 +329,7 @@ export async function getDashboard(req: AuthRequest, res: Response): Promise<voi
       },
     ]
 
-    res.json({
+    const dashboardData = {
       totalProjects,
       activeProjects,
       completedProjects,
@@ -334,7 +349,10 @@ export async function getDashboard(req: AuthRequest, res: Response): Promise<voi
         '90D': activityChart90D,
       },
       kpis,
-    })
+    }
+
+    await cacheSet(cacheKey, dashboardData, 300)
+    res.json(dashboardData)
   } catch (error) {
     res.status(500).json({ error: (error as Error).message })
   }

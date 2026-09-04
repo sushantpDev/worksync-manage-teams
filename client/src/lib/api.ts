@@ -115,14 +115,11 @@ export async function refreshAccessToken(): Promise<boolean> {
   }
 
   refreshInFlight = (async () => {
-    const refreshToken = tokenStorage.getRefreshToken()
-    if (!refreshToken) return false
-
     try {
       const response = await fetch(`${API_BASE}/auth/refresh`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken }),
       })
 
       if (!response.ok) {
@@ -131,7 +128,7 @@ export async function refreshAccessToken(): Promise<boolean> {
       }
 
       const data = (await response.json()) as AuthTokens
-      tokenStorage.setTokens(data.accessToken, data.refreshToken)
+      tokenStorage.setAccessToken(data.accessToken)
       return true
     } catch {
       tokenStorage.clear()
@@ -159,19 +156,16 @@ export async function apiRequest<T>(
 
   let response = await fetch(`${API_BASE}${endpoint}`, {
     ...options,
+    credentials: 'include',
     headers: buildHeaders(),
   })
 
-  if (
-    response.status === 401 &&
-    retryOnUnauthorized &&
-    !isAuthEndpoint &&
-    tokenStorage.getRefreshToken()
-  ) {
+  if (response.status === 401 && retryOnUnauthorized && !isAuthEndpoint) {
     const refreshed = await refreshAccessToken()
     if (refreshed) {
       response = await fetch(`${API_BASE}${endpoint}`, {
         ...options,
+        credentials: 'include',
         headers: buildHeaders(),
       })
     }
@@ -196,18 +190,15 @@ async function apiBlobDownload(endpoint: string, retryOnUnauthorized = true): Pr
   })
 
   let response = await fetch(`${API_BASE}${endpoint}`, {
+    credentials: 'include',
     headers: buildHeaders(),
   })
 
-  if (
-    response.status === 401 &&
-    retryOnUnauthorized &&
-    !isAuthEndpoint &&
-    tokenStorage.getRefreshToken()
-  ) {
+  if (response.status === 401 && retryOnUnauthorized && !isAuthEndpoint) {
     const refreshed = await refreshAccessToken()
     if (refreshed) {
       response = await fetch(`${API_BASE}${endpoint}`, {
+        credentials: 'include',
         headers: buildHeaders(),
       })
     }
@@ -238,20 +229,17 @@ export async function apiFormRequest<T>(
 
   let response = await fetch(`${API_BASE}${endpoint}`, {
     method: 'POST',
+    credentials: 'include',
     body: formData,
     headers: buildHeaders(),
   })
 
-  if (
-    response.status === 401 &&
-    retryOnUnauthorized &&
-    !isAuthEndpoint &&
-    tokenStorage.getRefreshToken()
-  ) {
+  if (response.status === 401 && retryOnUnauthorized && !isAuthEndpoint) {
     const refreshed = await refreshAccessToken()
     if (refreshed) {
       response = await fetch(`${API_BASE}${endpoint}`, {
         method: 'POST',
+        credentials: 'include',
         body: formData,
         headers: buildHeaders(),
       })
@@ -330,27 +318,20 @@ export const authApi = {
     apiRequest<AvatarUploadResponse>('/auth/avatar', { method: 'DELETE' }),
 
   refresh: () => {
-    const refreshToken = tokenStorage.getRefreshToken()
-    if (!refreshToken) {
-      return Promise.reject(new ApiError('No refresh token', 401))
-    }
     return apiRequest<AuthTokens>(
       '/auth/refresh',
       {
         method: 'POST',
-        body: JSON.stringify({ refreshToken }),
       },
       false
     )
   },
 
   logout: () => {
-    const refreshToken = tokenStorage.getRefreshToken()
     return apiRequest<{ message: string }>(
       '/auth/logout',
       {
         method: 'POST',
-        body: JSON.stringify(refreshToken ? { refreshToken } : {}),
       },
       false
     )

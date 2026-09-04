@@ -4,6 +4,7 @@ import { Organization } from '../models/Organization'
 import { User } from '../models/User'
 import type { IMembership } from '../models/Membership'
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../utils/jwt'
+import { clearRefreshCookie, getRefreshCookie, setRefreshCookie } from '../utils/refreshCookie'
 import { isValidEmail, isValidPassword, isValidAvatarUrl, normalizeEmail } from '../utils/validation'
 import type { AuthRequest } from '../middleware/auth'
 import {
@@ -99,12 +100,12 @@ export async function register(req: AuthRequest, res: Response): Promise<void> {
     const { organization, membership } = await createOrganizationWithAdmin(user._id, orgName)
 
     const { accessToken, refreshToken } = await issueTokensForMembership(user, membership)
+    setRefreshCookie(res, refreshToken)
 
     res.status(201).json({
       user: serializeUser(user, membership),
       organization: serializeOrganization(organization),
       accessToken,
-      refreshToken,
     })
   } catch (error) {
     res.status(500).json({ error: (error as Error).message })
@@ -135,13 +136,13 @@ export async function login(req: AuthRequest, res: Response): Promise<void> {
     }
 
     const { accessToken, refreshToken } = await issueTokensForMembership(user, membership)
+    setRefreshCookie(res, refreshToken)
     const organization = await Organization.findById(membership.organizationId)
 
     res.json({
       user: serializeUser(user, membership),
       organization: organization ? serializeOrganization(organization) : null,
       accessToken,
-      refreshToken,
     })
   } catch (error) {
     res.status(500).json({ error: (error as Error).message })
@@ -150,10 +151,10 @@ export async function login(req: AuthRequest, res: Response): Promise<void> {
 
 export async function refresh(req: AuthRequest, res: Response): Promise<void> {
   try {
-    const { refreshToken } = req.body
+    const refreshToken = getRefreshCookie(req)
 
     if (!refreshToken) {
-      res.status(400).json({ error: 'Refresh token required' })
+      res.status(401).json({ error: 'Refresh token required' })
       return
     }
 
@@ -161,6 +162,7 @@ export async function refresh(req: AuthRequest, res: Response): Promise<void> {
     const user = await User.findById(payload.userId).select('+refreshToken')
 
     if (!user) {
+      clearRefreshCookie(res)
       res.status(401).json({ error: 'Invalid refresh token' })
       return
     }
@@ -170,6 +172,7 @@ export async function refresh(req: AuthRequest, res: Response): Promise<void> {
         user.refreshToken = undefined
         await user.save()
       }
+      clearRefreshCookie(res)
       res.status(401).json({ error: 'Invalid refresh token' })
       return
     }
@@ -181,14 +184,22 @@ export async function refresh(req: AuthRequest, res: Response): Promise<void> {
       membership = await getDefaultMembership(user._id)
     }
     if (!membership) {
+      user.refreshToken = undefined
+      await user.save()
+      clearRefreshCookie(res)
       res.status(403).json({ error: 'No organization membership found' })
       return
     }
 
-    const tokens = await issueTokensForMembership(user, membership)
+    const { accessToken, refreshToken: rotatedRefreshToken } = await issueTokensForMembership(
+      user,
+      membership
+    )
+    setRefreshCookie(res, rotatedRefreshToken)
 
-    res.json(tokens)
+    res.json({ accessToken })
   } catch {
+    clearRefreshCookie(res)
     res.status(401).json({ error: 'Invalid refresh token' })
   }
 }
@@ -197,11 +208,12 @@ export async function logout(req: AuthRequest, res: Response): Promise<void> {
   try {
     if (req.user?.userId) {
       await User.findByIdAndUpdate(req.user.userId, { $unset: { refreshToken: 1 } })
+      clearRefreshCookie(res)
       res.json({ message: 'Logged out successfully' })
       return
     }
 
-    const { refreshToken } = req.body
+    const refreshToken = getRefreshCookie(req)
     if (refreshToken) {
       try {
         const payload = verifyRefreshToken(refreshToken)
@@ -211,6 +223,7 @@ export async function logout(req: AuthRequest, res: Response): Promise<void> {
       }
     }
 
+    clearRefreshCookie(res)
     res.json({ message: 'Logged out successfully' })
   } catch (error) {
     res.status(500).json({ error: (error as Error).message })
@@ -343,7 +356,7 @@ export async function updateMe(req: AuthRequest, res: Response): Promise<void> {
     if (emailChanged && currentMembership) {
       const tokens = await issueTokensForMembership(user, currentMembership)
       responseBody.accessToken = tokens.accessToken
-      responseBody.refreshToken = tokens.refreshToken
+      setRefreshCookie(res, tokens.refreshToken)
     }
 
     res.json(responseBody)
@@ -384,6 +397,7 @@ export async function changePassword(req: AuthRequest, res: Response): Promise<v
     user.password = await bcrypt.hash(newPassword, 12)
     user.refreshToken = undefined
     await user.save()
+    clearRefreshCookie(res)
 
     res.json({ message: 'Password changed successfully. Please sign in again.' })
   } catch (error) {
@@ -479,6 +493,7 @@ export async function resetPassword(req: AuthRequest, res: Response): Promise<vo
     user.passwordResetExpiresAt = undefined
     user.refreshToken = undefined
     await user.save()
+    clearRefreshCookie(res)
 
     res.json({ message: 'Password reset successfully.' })
   } catch (error) {

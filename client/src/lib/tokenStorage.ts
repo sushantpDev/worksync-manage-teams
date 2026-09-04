@@ -1,18 +1,17 @@
 const ACCESS_TOKEN_KEY = 'worksync_access_token'
 const REFRESH_TOKEN_KEY = 'worksync_refresh_token'
 
+if (typeof window !== 'undefined') {
+  localStorage.removeItem(REFRESH_TOKEN_KEY)
+}
+
 export const tokenStorage = {
   getAccessToken(): string | null {
     return localStorage.getItem(ACCESS_TOKEN_KEY)
   },
 
-  getRefreshToken(): string | null {
-    return localStorage.getItem(REFRESH_TOKEN_KEY)
-  },
-
-  setTokens(accessToken: string, refreshToken: string): void {
+  setAccessToken(accessToken: string): void {
     localStorage.setItem(ACCESS_TOKEN_KEY, accessToken)
-    localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken)
   },
 
   clear(): void {
@@ -21,6 +20,6 @@ export const tokenStorage = {
   },
 
   hasSession(): boolean {
-    return Boolean(this.getAccessToken() || this.getRefreshToken())
+    return Boolean(this.getAccessToken())
   },
 }

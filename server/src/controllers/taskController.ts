@@ -51,6 +51,7 @@ async function requireProjectAccess(req: AuthRequest, projectId: string) {
 async function invalidateProjectCaches(orgId: string) {
   await cacheDel(`projects:list:${orgId}:full`)
   await cacheDel(`projects:list:${orgId}`)
+  await cacheDel(`dashboard:${orgId}`)
 }
 
 async function syncProjectTaskCounts(projectId: string) {

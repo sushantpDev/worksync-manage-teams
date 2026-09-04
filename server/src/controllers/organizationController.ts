@@ -9,6 +9,7 @@ import {
   getUserMemberships,
 } from '../services/membershipService'
 import { generateAccessToken, generateRefreshToken } from '../utils/jwt'
+import { setRefreshCookie } from '../utils/refreshCookie'
 import { isValidEmail, isValidOrganizationName } from '../utils/validation'
 import { logActivity } from '../services/activityService'
 import {
@@ -93,6 +94,7 @@ export async function createOrganization(req: AuthRequest, res: Response): Promi
     }
 
     const tokens = await issueTokensForMembership(user, membership)
+    setRefreshCookie(res, tokens.refreshToken)
 
     res.status(201).json({
       user: {
@@ -109,7 +111,7 @@ export async function createOrganization(req: AuthRequest, res: Response): Promi
         organizationId: organization._id.toString(),
         role: membership.role,
       },
-      ...tokens,
+      accessToken: tokens.accessToken,
     })
   } catch (error) {
     res.status(500).json({ error: (error as Error).message })
@@ -422,6 +424,7 @@ export async function switchOrganization(req: AuthRequest, res: Response): Promi
 
     user.defaultOrganizationId = membership.organizationId
     const tokens = await issueTokensForMembership(user, membership)
+    setRefreshCookie(res, tokens.refreshToken)
     const organization = await Organization.findById(id)
 
     res.json({
@@ -436,7 +439,7 @@ export async function switchOrganization(req: AuthRequest, res: Response): Promi
       },
       organization: organization ? serializeOrganization(organization) : null,
       role: membership.role,
-      ...tokens,
+      accessToken: tokens.accessToken,
     })
   } catch (error) {
     res.status(500).json({ error: (error as Error).message })

@@ -2,7 +2,6 @@ import type { Organization, User, UserRole } from './index'
 
 export interface AuthTokens {
   accessToken: string
-  refreshToken: string
 }
 
 export interface OrganizationMembership {
@@ -62,7 +61,6 @@ export interface UpdateProfileResponse {
     organizationId?: string
   }
   accessToken?: string
-  refreshToken?: string
 }
 
 export interface AvatarUploadResponse {

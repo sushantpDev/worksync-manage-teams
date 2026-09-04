@@ -78,7 +78,6 @@ export interface AcceptInvitationResponse {
   membership: { organizationId: string; role: UserRole }
   organization: Organization | null
   accessToken: string
-  refreshToken: string
 }
 
 export interface CreateTeamPayload {
