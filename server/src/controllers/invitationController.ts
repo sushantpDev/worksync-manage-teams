@@ -101,14 +101,25 @@ export async function createInvitation(req: AuthRequest, res: Response): Promise
     const inviter = await User.findById(req.user!.userId)
     const acceptUrl = `${config.clientUrl}/invite/${rawToken}`
 
-    await sendInvitationEmail({
-      to: normalizedEmail,
-      organizationName: organization?.name ?? 'your organization',
-      inviterName: inviter ? `${inviter.firstName} ${inviter.lastName}` : 'A team admin',
-      role,
-      expiresAt,
-      acceptUrl,
-    })
+    try {
+      await sendInvitationEmail({
+        to: normalizedEmail,
+        organizationName: organization?.name ?? 'your organization',
+        inviterName: inviter ? `${inviter.firstName} ${inviter.lastName}` : 'A team admin',
+        role,
+        expiresAt,
+        acceptUrl,
+      })
+    } catch (emailError) {
+      console.error(
+        '[invitation] Invitation created but email delivery failed:',
+        (emailError as Error).message
+      )
+      res.status(502).json({
+        error: 'Invitation was created, but the email could not be sent. Please try again.',
+      })
+      return
+    }
 
     res.status(201).json(serializeInvitation(invitation))
   } catch (error) {

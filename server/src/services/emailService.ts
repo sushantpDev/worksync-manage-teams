@@ -2,11 +2,45 @@ import nodemailer from 'nodemailer'
 import { config } from '../config'
 
 let transporter: nodemailer.Transporter | null = null
+let usingJsonTransport = false
+
+function isProduction() {
+  return config.nodeEnv === 'production'
+}
+
+function hasRealSmtpConfig() {
+  return Boolean(
+    config.smtp.host &&
+      config.smtp.user &&
+      config.smtp.pass &&
+      config.smtp.from &&
+      Number.isFinite(config.smtp.port)
+  )
+}
+
+function assertProductionSmtpConfig() {
+  const missing: string[] = []
+  if (!process.env.SMTP_HOST?.trim()) missing.push('SMTP_HOST')
+  if (!process.env.SMTP_PORT?.trim()) missing.push('SMTP_PORT')
+  if (!process.env.SMTP_USER?.trim()) missing.push('SMTP_USER')
+  if (!process.env.SMTP_PASS?.trim()) missing.push('SMTP_PASS')
+  if (!process.env.SMTP_FROM?.trim()) missing.push('SMTP_FROM')
+
+  if (missing.length > 0) {
+    throw new Error(
+      `SMTP is not fully configured in production (missing: ${missing.join(', ')})`
+    )
+  }
+}
 
 function getTransporter() {
   if (transporter) return transporter
 
-  if (config.smtp.host && config.smtp.user && config.smtp.pass) {
+  if (isProduction()) {
+    assertProductionSmtpConfig()
+  }
+
+  if (hasRealSmtpConfig()) {
     transporter = nodemailer.createTransport({
       host: config.smtp.host,
       port: config.smtp.port,
@@ -16,13 +50,56 @@ function getTransporter() {
         pass: config.smtp.pass,
       },
     })
+    usingJsonTransport = false
+
+    console.log('[email] SMTP configured')
+    console.log(`host: ${config.smtp.host}`)
+    console.log(`port: ${config.smtp.port}`)
+    console.log(`secure: ${config.smtp.secure}`)
+    console.log(`from: ${config.smtp.from}`)
   } else {
+    if (isProduction()) {
+      throw new Error('SMTP is not fully configured in production')
+    }
+
     transporter = nodemailer.createTransport({
       jsonTransport: true,
     })
+    usingJsonTransport = true
+    console.log('[email] Using jsonTransport fallback (development only)')
   }
 
   return transporter
+}
+
+function safeErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) {
+    return error.message.replace(config.smtp.pass, '[redacted]').replace(config.smtp.user, '[redacted]')
+  }
+  return 'Unknown email error'
+}
+
+export async function verifyEmailTransport(): Promise<void> {
+  try {
+    if (isProduction()) {
+      assertProductionSmtpConfig()
+    }
+
+    if (!hasRealSmtpConfig()) {
+      if (isProduction()) {
+        console.error('[email] SMTP verification failed: SMTP is not fully configured in production')
+      } else {
+        console.log('[email] Skipping SMTP verification (jsonTransport / no SMTP configured)')
+      }
+      return
+    }
+
+    const transport = getTransporter()
+    await transport.verify()
+    console.log('[email] SMTP verification succeeded')
+  } catch (error) {
+    console.error(`[email] SMTP verification failed: ${safeErrorMessage(error)}`)
+  }
 }
 
 export async function sendInvitationEmail(params: {
@@ -39,9 +116,25 @@ export async function sendInvitationEmail(params: {
     year: 'numeric',
   })
 
+  const subject = `You're invited to join ${params.organizationName} on WorkSync`
+
+  const text = [
+    `You're invited to join ${params.organizationName} on WorkSync`,
+    '',
+    `${params.inviterName} invited you to join ${params.organizationName} as a ${params.role}.`,
+    `This invitation expires on ${expiresLabel}.`,
+    '',
+    `Accept the invitation:`,
+    params.acceptUrl,
+    '',
+    'If you were not expecting this invitation, you can ignore this email.',
+    '',
+    'WorkSync',
+  ].join('\n')
+
   const html = `
     <div style="font-family: Inter, Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 24px;">
-      <h2 style="color: #111827; margin-bottom: 8px;">You've been invited to join ${params.organizationName} on WorkSync</h2>
+      <h2 style="color: #111827; margin-bottom: 8px;">You're invited to join ${params.organizationName} on WorkSync</h2>
       <p style="color: #4b5563; line-height: 1.6;">
         <strong>${params.inviterName}</strong> invited you to join <strong>${params.organizationName}</strong>
         as a <strong>${params.role}</strong>.
@@ -55,7 +148,10 @@ export async function sendInvitationEmail(params: {
       </p>
       <p style="color: #9ca3af; font-size: 12px;">
         If the button doesn't work, copy this link:<br />
-        <a href="${params.acceptUrl}" style="color: #7c3aed;">${params.acceptUrl}</a>
+        <a href="${params.acceptUrl}" style="color: #1a56db;">${params.acceptUrl}</a>
+      </p>
+      <p style="color: #9ca3af; font-size: 12px; margin-top: 24px;">
+        If you were not expecting this invitation, you can ignore this email.
       </p>
     </div>
   `
@@ -63,14 +159,15 @@ export async function sendInvitationEmail(params: {
   const mail = {
     from: config.smtp.from,
     to: params.to,
-    subject: `You've been invited to join ${params.organizationName} on WorkSync`,
+    subject,
+    text,
     html,
   }
 
   const transport = getTransporter()
   const result = await transport.sendMail(mail)
 
-  if (!config.smtp.host) {
+  if (usingJsonTransport) {
     console.log('[email] Invitation (dev — no SMTP configured):', JSON.stringify(result, null, 2))
     console.log('[email] Accept URL:', params.acceptUrl)
   }
@@ -91,6 +188,23 @@ export async function sendPasswordResetEmail(params: {
       <path d="M36 45.5V49" stroke="#111827" stroke-width="2.5" stroke-linecap="round"/>
     </svg>
   `
+
+  const subject = 'Reset your WorkSync password'
+
+  const text = [
+    `Hi ${params.firstName},`,
+    '',
+    'We received a request to reset your WorkSync password.',
+    '',
+    `Reset your password:`,
+    params.resetUrl,
+    '',
+    `This link expires in ${params.expiresInMinutes} minutes.`,
+    '',
+    "If you didn't request this, you can ignore this email.",
+    '',
+    'WorkSync',
+  ].join('\n')
 
   const html = `
     <!DOCTYPE html>
@@ -165,14 +279,15 @@ export async function sendPasswordResetEmail(params: {
   const mail = {
     from: config.smtp.from,
     to: params.to,
-    subject: 'Reset your WorkSync password',
+    subject,
+    text,
     html,
   }
 
   const transport = getTransporter()
   const result = await transport.sendMail(mail)
 
-  if (!config.smtp.host) {
+  if (usingJsonTransport) {
     console.log('[email] Password reset (dev — no SMTP configured):', JSON.stringify(result, null, 2))
     console.log('[email] Reset URL:', params.resetUrl)
   }
