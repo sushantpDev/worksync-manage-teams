@@ -11,6 +11,7 @@ import { ChangeMemberRoleModal } from '../team/ChangeMemberRoleModal'
 import { InviteMemberModal } from '../team/InviteMemberModal'
 import { RemoveMemberModal } from '../team/RemoveMemberModal'
 import { Avatar } from '../ui/Avatar'
+import { ActionMenuPortal } from '../ui/ActionMenuPortal'
 import { EmptyState, LoadingState } from '../ui/State'
 import { useAuth } from '../../context/AuthContext'
 import { ApiError, organizationsApi } from '../../lib/api'
@@ -544,47 +545,45 @@ function RowMenu({
   const [open, setOpen] = useState(false)
 
   return (
-    <div className="relative">
+    <ActionMenuPortal
+      open={open}
+      onClose={() => setOpen(false)}
+      estimatedMenuHeight={100}
+      trigger={({ ref }) => (
+        <button
+          ref={ref}
+          type="button"
+          aria-label="Actions"
+          aria-expanded={open}
+          onClick={() => setOpen((v) => !v)}
+          className="rounded-lg p-2 text-[#6b7280] hover:bg-[#f3f4f6] hover:text-[#111827]"
+        >
+          <MoreHorizontal className="h-4 w-4" />
+        </button>
+      )}
+    >
       <button
         type="button"
-        aria-label="Actions"
-        onClick={() => setOpen((v) => !v)}
-        className="rounded-lg p-2 text-[#6b7280] hover:bg-[#f3f4f6] hover:text-[#111827]"
+        role="menuitem"
+        className="flex w-full px-3 py-2 text-left text-sm text-[#111827] hover:bg-[#f9fafb]"
+        onClick={() => {
+          setOpen(false)
+          onChangeRole()
+        }}
       >
-        <MoreHorizontal className="h-4 w-4" />
+        Change role
       </button>
-      {open && (
-        <>
-          <button
-            type="button"
-            className="fixed inset-0 z-40 cursor-default"
-            aria-label="Close"
-            onClick={() => setOpen(false)}
-          />
-          <div className="absolute right-0 top-full z-50 mt-1 min-w-[10rem] rounded-lg border border-[#e5e7eb] bg-white py-1 shadow-lg">
-            <button
-              type="button"
-              className="flex w-full px-3 py-2 text-left text-sm text-[#111827] hover:bg-[#f9fafb]"
-              onClick={() => {
-                setOpen(false)
-                onChangeRole()
-              }}
-            >
-              Change role
-            </button>
-            <button
-              type="button"
-              className="flex w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
-              onClick={() => {
-                setOpen(false)
-                onRemove()
-              }}
-            >
-              Remove
-            </button>
-          </div>
-        </>
-      )}
-    </div>
+      <button
+        type="button"
+        role="menuitem"
+        className="flex w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+        onClick={() => {
+          setOpen(false)
+          onRemove()
+        }}
+      >
+        Remove
+      </button>
+    </ActionMenuPortal>
   )
 }

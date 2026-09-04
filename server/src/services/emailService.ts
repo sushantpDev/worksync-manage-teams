@@ -242,6 +242,8 @@ export async function sendInvitationEmail(params: {
   })
 
   const subject = `You're invited to join ${params.organizationName} on WorkSync`
+  const clientUrl = config.clientUrl.replace(/\/$/, '')
+  const bannerUrl = `${clientUrl}/images/email/invitation-banner.png`
 
   const text = [
     `You're invited to join ${params.organizationName} on WorkSync`,
@@ -258,26 +260,67 @@ export async function sendInvitationEmail(params: {
   ].join('\n')
 
   const html = `
-    <div style="font-family: Inter, Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 24px;">
-      <h2 style="color: #111827; margin-bottom: 8px;">You're invited to join ${params.organizationName} on WorkSync</h2>
-      <p style="color: #4b5563; line-height: 1.6;">
-        <strong>${params.inviterName}</strong> invited you to join <strong>${params.organizationName}</strong>
-        as a <strong>${params.role}</strong>.
-      </p>
-      <p style="color: #6b7280; font-size: 14px;">This invitation expires on ${expiresLabel}.</p>
-      <p style="margin: 28px 0;">
-        <a href="${params.acceptUrl}"
-           style="background: #111827; color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600;">
-          Accept Invitation
-        </a>
-      </p>
-      <p style="color: #9ca3af; font-size: 12px;">
-        If the button doesn't work, copy this link:<br />
-        <a href="${params.acceptUrl}" style="color: #1a56db;">${params.acceptUrl}</a>
-      </p>
-      <p style="color: #9ca3af; font-size: 12px; margin-top: 24px;">
-        If you were not expecting this invitation, you can ignore this email.
-      </p>
+    <div style="margin: 0; padding: 0; background: #f6f3ff; font-family: Inter, Arial, sans-serif;">
+      <div style="max-width: 640px; margin: 0 auto; background: #ffffff;">
+        <div style="padding: 26px 28px 18px;">
+          <div style="font-size: 28px; line-height: 1; font-weight: 800; letter-spacing: -0.04em; color: #111827;">
+            worksync<span style="color: #111827;">.</span>
+          </div>
+        </div>
+
+        <div style="position: relative; background: #af9ced;">
+          <img src="${bannerUrl}" alt="" width="640" style="display: block; width: 100%; max-width: 640px; height: auto; border: 0;" />
+          <div style="padding: 0 28px 28px; margin-top: -118px; position: relative;">
+            <p style="margin: 0 0 8px; color: #4f2fb6; font-size: 14px; line-height: 20px; font-weight: 700;">
+              WorkSync invitation
+            </p>
+            <h1 style="margin: 0; max-width: 430px; color: #111827; font-size: 34px; line-height: 40px; font-weight: 800; letter-spacing: -0.03em;">
+              You're invited to join ${params.organizationName}
+            </h1>
+          </div>
+        </div>
+
+        <div style="padding: 34px 28px 40px;">
+          <p style="margin: 0 0 24px; color: #4b5563; font-size: 15px; line-height: 24px;">
+            Hello,
+          </p>
+          <p style="margin: 0 0 18px; color: #4b5563; font-size: 15px; line-height: 24px;">
+            <strong style="color: #111827;">${params.inviterName}</strong> invited you to join
+            <strong style="color: #111827;">${params.organizationName}</strong> on WorkSync as a
+            <strong style="color: #111827;">${params.role}</strong>.
+          </p>
+          <p style="margin: 0 0 28px; color: #6b7280; font-size: 14px; line-height: 22px;">
+            This invitation expires on ${expiresLabel}.
+          </p>
+
+          <a href="${params.acceptUrl}"
+             style="display: inline-block; background: #111827; color: #ffffff; text-decoration: none; padding: 13px 22px; border-radius: 8px; font-size: 14px; font-weight: 700;">
+            Accept Invitation
+          </a>
+
+          <p style="margin: 28px 0 0; color: #9ca3af; font-size: 12px; line-height: 19px;">
+            If the button doesn't work, copy this link:<br />
+            <a href="${params.acceptUrl}" style="color: #1a56db; word-break: break-all;">${params.acceptUrl}</a>
+          </p>
+          <p style="margin: 24px 0 0; color: #9ca3af; font-size: 12px; line-height: 19px;">
+            If you were not expecting this invitation, you can ignore this email.
+          </p>
+        </div>
+
+        <div style="border-top: 1px solid #e5e7eb; padding: 22px 28px 26px;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse: collapse;">
+            <tr>
+              <td style="font-size: 22px; font-weight: 800; letter-spacing: -0.04em; color: #111827;">
+                worksync<span>.</span>
+              </td>
+              <td align="right" style="color: #9ca3af; font-size: 11px; line-height: 17px;">
+                Please do not reply directly to this email.<br />
+                WorkSync team collaboration
+              </td>
+            </tr>
+          </table>
+        </div>
+      </div>
     </div>
   `
 

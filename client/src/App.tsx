@@ -21,14 +21,13 @@ import { CommunicationPage } from './pages/CommunicationPage'
 import { InviteAcceptPage } from './pages/InviteAcceptPage'
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
 import { ResetPasswordPage } from './pages/ResetPasswordPage'
-import { ProductPage } from './pages/ProductPage'
 import { KnowledgePage } from './pages/KnowledgePage'
 
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<ProductPage />} />
-      <Route path="/product" element={<Navigate to="/" replace />} />
+      <Route path="/" element={<Navigate to="/login" replace />} />
+      <Route path="/product" element={<Navigate to="/login" replace />} />
       <Route path="/invite/:token" element={<InviteAcceptPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />

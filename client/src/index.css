@@ -83,6 +83,67 @@
 }
 
 @layer components {
+  .landing-hero-panel {
+    overflow: hidden;
+    background: transparent;
+  }
+
+  .landing-hero-layout {
+    position: relative;
+    display: grid;
+    min-height: 620px;
+    grid-template-columns: minmax(430px, 0.9fr) minmax(540px, 1fr);
+    align-items: center;
+    gap: 2rem;
+    padding: 3.25rem 0 3.75rem;
+  }
+
+  .landing-hero-layout::before {
+    position: absolute;
+    inset: 0 auto 0 43%;
+    width: 38%;
+    content: '';
+    background: linear-gradient(105deg, transparent 0%, rgb(255 255 255 / 15%) 48%, transparent 49%);
+    pointer-events: none;
+  }
+
+  .landing-hero-layout::after {
+    position: absolute;
+    right: -8%;
+    bottom: 8%;
+    width: 42rem;
+    height: 42rem;
+    border-radius: 999px;
+    content: '';
+    background: radial-gradient(circle, rgb(255 255 255 / 20%) 0%, rgb(255 255 255 / 8%) 44%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .landing-hero-copy {
+    position: relative;
+    z-index: 1;
+    max-width: 700px;
+    align-self: center;
+  }
+
+  .landing-hero-visual {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    min-width: 0;
+    min-height: 500px;
+    align-items: center;
+    justify-content: flex-end;
+    transform: translateY(0);
+  }
+
+  .landing-hero-visual img {
+    width: min(112%, 920px);
+    height: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 26px 38px rgb(83 59 143 / 22%));
+  }
+
   .help-feature-split {
     display: grid;
     grid-template-columns: minmax(280px, 460px) minmax(360px, 1fr);
@@ -96,7 +157,42 @@
     justify-self: end;
   }
 
+  @media (max-width: 1080px) {
+    .landing-hero-layout {
+      grid-template-columns: 1fr;
+      min-height: auto;
+      gap: 2.5rem;
+      padding: 3rem 0;
+    }
+
+    .landing-hero-copy {
+      max-width: 760px;
+    }
+
+    .landing-hero-visual {
+      min-height: 360px;
+      justify-content: center;
+      transform: none;
+    }
+
+    .landing-hero-visual img {
+      width: min(100%, 760px);
+    }
+  }
+
   @media (max-width: 760px) {
+    .landing-hero-layout {
+      grid-template-columns: 1fr;
+      min-height: auto;
+      padding: 2.5rem 0 3rem;
+    }
+
+    .landing-hero-visual {
+      min-height: 240px;
+      justify-content: center;
+      transform: none;
+    }
+
     .help-feature-split {
       grid-template-columns: 1fr;
     }

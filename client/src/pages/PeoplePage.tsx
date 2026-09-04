@@ -13,6 +13,7 @@ import { InviteMemberModal } from '../components/team/InviteMemberModal'
 import { MemberRowActions } from '../components/team/MemberRowActions'
 import { RemoveMemberModal } from '../components/team/RemoveMemberModal'
 import { Avatar } from '../components/ui/Avatar'
+import { ActionMenuPortal } from '../components/ui/ActionMenuPortal'
 import { Button } from '../components/ui/Button'
 import { EmptyState, LoadingState } from '../components/ui/State'
 import { useAuth } from '../context/AuthContext'
@@ -740,38 +741,35 @@ function InvitationRowActions({
   const [open, setOpen] = useState(false)
 
   return (
-    <div className="relative">
+    <ActionMenuPortal
+      open={open}
+      onClose={() => setOpen(false)}
+      estimatedMenuHeight={56}
+      trigger={({ ref }) => (
+        <button
+          ref={ref}
+          type="button"
+          aria-label="Invitation actions"
+          aria-expanded={open}
+          onClick={() => setOpen((v) => !v)}
+          className="rounded-lg p-2 text-[#6b7280] transition-colors hover:bg-[#f3f4f6] hover:text-[#111827]"
+        >
+          <MoreHorizontal className="h-4 w-4" />
+        </button>
+      )}
+    >
       <button
         type="button"
-        aria-label="Invitation actions"
-        onClick={() => setOpen((v) => !v)}
-        className="rounded-lg p-2 text-[#6b7280] transition-colors hover:bg-[#f3f4f6] hover:text-[#111827]"
+        role="menuitem"
+        disabled={revoking}
+        className="flex w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 disabled:opacity-60"
+        onClick={() => {
+          setOpen(false)
+          onRevoke()
+        }}
       >
-        <MoreHorizontal className="h-4 w-4" />
+        {revoking ? 'Revoking...' : 'Revoke invite'}
       </button>
-      {open && (
-        <>
-          <button
-            type="button"
-            className="fixed inset-0 z-40 cursor-default"
-            aria-label="Close menu"
-            onClick={() => setOpen(false)}
-          />
-          <div className="absolute right-0 top-full z-50 mt-1 min-w-[9rem] rounded-lg border border-[#e5e7eb] bg-white py-1 shadow-lg">
-            <button
-              type="button"
-              disabled={revoking}
-              className="flex w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 disabled:opacity-60"
-              onClick={() => {
-                setOpen(false)
-                onRevoke()
-              }}
-            >
-              {revoking ? 'Revoking...' : 'Revoke invite'}
-            </button>
-          </div>
-        </>
-      )}
-    </div>
+    </ActionMenuPortal>
   )
 }
