@@ -251,8 +251,7 @@ export async function sendInvitationEmail(params: {
     `${params.inviterName} invited you to join ${params.organizationName} as a ${params.role}.`,
     `This invitation expires on ${expiresLabel}.`,
     '',
-    `Accept the invitation:`,
-    params.acceptUrl,
+    'Open this email in HTML view and select Accept Invitation to join.',
     '',
     'If you were not expecting this invitation, you can ignore this email.',
     '',
@@ -260,68 +259,87 @@ export async function sendInvitationEmail(params: {
   ].join('\n')
 
   const html = `
-    <div style="margin: 0; padding: 0; background: #f6f3ff; font-family: Inter, Arial, sans-serif;">
-      <div style="max-width: 640px; margin: 0 auto; background: #ffffff;">
-        <div style="padding: 26px 28px 18px;">
-          <div style="font-size: 28px; line-height: 1; font-weight: 800; letter-spacing: -0.04em; color: #111827;">
-            worksync<span style="color: #111827;">.</span>
-          </div>
-        </div>
-
-        <div style="position: relative; background: #af9ced;">
-          <img src="${bannerUrl}" alt="" width="640" style="display: block; width: 100%; max-width: 640px; height: auto; border: 0;" />
-          <div style="padding: 0 28px 28px; margin-top: -118px; position: relative;">
-            <p style="margin: 0 0 8px; color: #4f2fb6; font-size: 14px; line-height: 20px; font-weight: 700;">
-              WorkSync invitation
-            </p>
-            <h1 style="margin: 0; max-width: 430px; color: #111827; font-size: 34px; line-height: 40px; font-weight: 800; letter-spacing: -0.03em;">
-              You're invited to join ${params.organizationName}
-            </h1>
-          </div>
-        </div>
-
-        <div style="padding: 34px 28px 40px;">
-          <p style="margin: 0 0 24px; color: #4b5563; font-size: 15px; line-height: 24px;">
-            Hello,
-          </p>
-          <p style="margin: 0 0 18px; color: #4b5563; font-size: 15px; line-height: 24px;">
-            <strong style="color: #111827;">${params.inviterName}</strong> invited you to join
-            <strong style="color: #111827;">${params.organizationName}</strong> on WorkSync as a
-            <strong style="color: #111827;">${params.role}</strong>.
-          </p>
-          <p style="margin: 0 0 28px; color: #6b7280; font-size: 14px; line-height: 22px;">
-            This invitation expires on ${expiresLabel}.
-          </p>
-
-          <a href="${params.acceptUrl}"
-             style="display: inline-block; background: #111827; color: #ffffff; text-decoration: none; padding: 13px 22px; border-radius: 8px; font-size: 14px; font-weight: 700;">
-            Accept Invitation
-          </a>
-
-          <p style="margin: 28px 0 0; color: #9ca3af; font-size: 12px; line-height: 19px;">
-            If the button doesn't work, copy this link:<br />
-            <a href="${params.acceptUrl}" style="color: #1a56db; word-break: break-all;">${params.acceptUrl}</a>
-          </p>
-          <p style="margin: 24px 0 0; color: #9ca3af; font-size: 12px; line-height: 19px;">
-            If you were not expecting this invitation, you can ignore this email.
-          </p>
-        </div>
-
-        <div style="border-top: 1px solid #e5e7eb; padding: 22px 28px 26px;">
-          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse: collapse;">
+    <div style="display: none; max-height: 0; overflow: hidden; opacity: 0;">
+      ${params.inviterName} invited you to join ${params.organizationName} on WorkSync.
+    </div>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width: 100%; border-collapse: collapse; background: #f6f3ff; margin: 0; padding: 0;">
+      <tr>
+        <td align="center" style="padding: 24px 10px;">
+          <table role="presentation" width="640" cellspacing="0" cellpadding="0" style="width: 640px; max-width: 100%; border-collapse: collapse; background: #ffffff;">
             <tr>
-              <td style="font-size: 22px; font-weight: 800; letter-spacing: -0.04em; color: #111827;">
-                worksync<span>.</span>
+              <td style="padding: 26px 28px 18px; background: #ffffff;">
+                <div style="font-family: Inter, Arial, sans-serif; font-size: 28px; line-height: 28px; font-weight: 800; letter-spacing: -0.04em; color: #111827;">
+                  worksync<span style="color: #111827;">.</span>
+                </div>
               </td>
-              <td align="right" style="color: #9ca3af; font-size: 11px; line-height: 17px;">
-                Please do not reply directly to this email.<br />
-                WorkSync team collaboration
+            </tr>
+            <tr>
+              <td style="background: #af9ced;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width: 100%; border-collapse: collapse;">
+                  <tr>
+                    <td valign="middle" width="58%" style="padding: 24px 0 24px 28px;">
+                      <p style="margin: 0 0 8px; font-family: Inter, Arial, sans-serif; color: #4f2fb6; font-size: 13px; line-height: 18px; font-weight: 700;">
+                        WorkSync invitation
+                      </p>
+                      <h1 style="margin: 0; font-family: Inter, Arial, sans-serif; color: #111827; font-size: 30px; line-height: 36px; font-weight: 800; letter-spacing: -0.03em;">
+                        You're invited to join ${params.organizationName}
+                      </h1>
+                    </td>
+                    <td valign="bottom" align="right" width="42%" style="padding: 0;">
+                      <img src="${bannerUrl}" alt="" width="270" height="148" style="display: block; width: 270px; max-width: 100%; height: 148px; border: 0; outline: none; text-decoration: none; object-fit: cover; object-position: right bottom;" />
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 36px 28px 46px; background: #ffffff;">
+                <p style="margin: 0 0 34px; font-family: Inter, Arial, sans-serif; color: #4b5563; font-size: 14px; line-height: 22px;">
+                  Hello,
+                </p>
+                <p style="margin: 0 0 22px; font-family: Inter, Arial, sans-serif; color: #4b5563; font-size: 14px; line-height: 23px;">
+                  <strong style="color: #111827;">${params.inviterName}</strong> invited you to join
+                  <strong style="color: #111827;">${params.organizationName}</strong> on WorkSync as a
+                  <strong style="color: #111827;">${params.role}</strong>.
+                </p>
+                <p style="margin: 0 0 30px; font-family: Inter, Arial, sans-serif; color: #6b7280; font-size: 14px; line-height: 22px;">
+                  This invitation expires on ${expiresLabel}.
+                </p>
+
+                <table role="presentation" cellspacing="0" cellpadding="0" style="border-collapse: collapse;">
+                  <tr>
+                    <td style="border-radius: 6px; background: #111827;">
+                      <a href="${params.acceptUrl}" style="display: inline-block; padding: 13px 22px; font-family: Inter, Arial, sans-serif; color: #ffffff; font-size: 14px; line-height: 18px; font-weight: 700; text-decoration: none;">
+                        Accept Invitation
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+
+                <p style="margin: 36px 0 0; font-family: Inter, Arial, sans-serif; color: #9ca3af; font-size: 12px; line-height: 19px;">
+                  If you were not expecting this invitation, you can ignore this email.
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="border-top: 1px solid #111827; padding: 22px 28px 26px; background: #ffffff;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width: 100%; border-collapse: collapse;">
+                  <tr>
+                    <td valign="top" style="font-family: Inter, Arial, sans-serif; font-size: 22px; line-height: 22px; font-weight: 800; letter-spacing: -0.04em; color: #111827;">
+                      worksync<span>.</span>
+                    </td>
+                    <td valign="top" align="right" style="font-family: Inter, Arial, sans-serif; color: #9ca3af; font-size: 10px; line-height: 16px;">
+                      Please do not reply directly to this email.<br />
+                      WorkSync team collaboration
+                    </td>
+                  </tr>
+                </table>
               </td>
             </tr>
           </table>
-        </div>
-      </div>
-    </div>
+        </td>
+      </tr>
+    </table>
   `
 
   await deliverEmail({
