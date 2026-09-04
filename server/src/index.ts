@@ -23,7 +23,7 @@ import reportsRoutes from './routes/reportsRoutes'
 import communicationRoutes from './routes/communicationRoutes'
 import { configureTrustProxy } from './middleware/trustProxy'
 import { initSocketServer } from './socket/socketServer'
-import { verifyEmailTransport } from './services/emailService'
+import { verifyEmailService } from './services/emailService'
 
 const app = express()
 
@@ -56,7 +56,7 @@ app.use((_req, res) => {
 async function start() {
   await connectDatabase()
   await connectRedis()
-  await verifyEmailTransport()
+  await verifyEmailService()
 
   const httpServer = createServer(app)
   initSocketServer(httpServer)

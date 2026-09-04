@@ -1,11 +1,50 @@
 import nodemailer from 'nodemailer'
+import { Resend } from 'resend'
 import { config } from '../config'
 
+let resendClient: Resend | null = null
 let transporter: nodemailer.Transporter | null = null
 let usingJsonTransport = false
 
 function isProduction() {
   return config.nodeEnv === 'production'
+}
+
+function hasResendConfig() {
+  return Boolean(config.resendApiKey && config.emailFrom)
+}
+
+function assertProductionResendConfig() {
+  const missing: string[] = []
+  if (!config.resendApiKey) missing.push('RESEND_API_KEY')
+  if (!config.emailFrom) missing.push('EMAIL_FROM')
+
+  if (missing.length > 0) {
+    throw new Error(
+      `Resend email service is not fully configured in production (missing: ${missing.join(', ')})`
+    )
+  }
+}
+
+function shouldUseResend() {
+  if (isProduction()) return true
+  return hasResendConfig()
+}
+
+function getResendClient() {
+  if (isProduction()) {
+    assertProductionResendConfig()
+  }
+
+  if (!config.resendApiKey) {
+    throw new Error('Resend email service is not fully configured')
+  }
+
+  if (!resendClient) {
+    resendClient = new Resend(config.resendApiKey)
+  }
+
+  return resendClient
 }
 
 function hasRealSmtpConfig() {
@@ -18,50 +57,31 @@ function hasRealSmtpConfig() {
   )
 }
 
-function assertProductionSmtpConfig() {
-  const missing: string[] = []
-  if (!process.env.SMTP_HOST?.trim()) missing.push('SMTP_HOST')
-  if (!process.env.SMTP_PORT?.trim()) missing.push('SMTP_PORT')
-  if (!process.env.SMTP_USER?.trim()) missing.push('SMTP_USER')
-  if (!process.env.SMTP_PASS?.trim()) missing.push('SMTP_PASS')
-  if (!process.env.SMTP_FROM?.trim()) missing.push('SMTP_FROM')
-
-  if (missing.length > 0) {
-    throw new Error(
-      `SMTP is not fully configured in production (missing: ${missing.join(', ')})`
-    )
-  }
-}
-
-function getTransporter() {
+function getDevTransporter() {
   if (transporter) return transporter
 
-  if (isProduction()) {
-    assertProductionSmtpConfig()
-  }
-
   if (hasRealSmtpConfig()) {
+    const isStartTls = config.smtp.port === 587 && !config.smtp.secure
+
     transporter = nodemailer.createTransport({
       host: config.smtp.host,
       port: config.smtp.port,
       secure: config.smtp.secure,
+      requireTLS: isStartTls,
       auth: {
         user: config.smtp.user,
         pass: config.smtp.pass,
       },
+      connectionTimeout: 15_000,
+      greetingTimeout: 15_000,
+      socketTimeout: 20_000,
     })
     usingJsonTransport = false
-
-    console.log('[email] SMTP configured')
+    console.log('[email] Dev SMTP configured')
     console.log(`host: ${config.smtp.host}`)
     console.log(`port: ${config.smtp.port}`)
-    console.log(`secure: ${config.smtp.secure}`)
     console.log(`from: ${config.smtp.from}`)
   } else {
-    if (isProduction()) {
-      throw new Error('SMTP is not fully configured in production')
-    }
-
     transporter = nodemailer.createTransport({
       jsonTransport: true,
     })
@@ -72,34 +92,139 @@ function getTransporter() {
   return transporter
 }
 
-function safeErrorMessage(error: unknown): string {
-  if (error instanceof Error && error.message) {
-    return error.message.replace(config.smtp.pass, '[redacted]').replace(config.smtp.user, '[redacted]')
+function getSenderAddress() {
+  if (shouldUseResend() && config.emailFrom) {
+    return config.emailFrom
   }
-  return 'Unknown email error'
+  return config.smtp.from || config.emailFrom || 'WorkSync <noreply@worksync.app>'
 }
 
-export async function verifyEmailTransport(): Promise<void> {
+function safeErrorMessage(error: unknown): string {
+  if (!error) return 'Unknown email error'
+
+  let message = ''
+  if (error instanceof Error && error.message) {
+    message = error.message
+  } else if (typeof error === 'object' && error !== null && 'message' in error) {
+    message = String((error as { message: unknown }).message)
+  } else {
+    message = String(error)
+  }
+
+  if (config.resendApiKey) {
+    message = message.split(config.resendApiKey).join('[redacted]')
+  }
+  if (config.smtp.pass) {
+    message = message.split(config.smtp.pass).join('[redacted]')
+  }
+  if (config.smtp.user) {
+    message = message.split(config.smtp.user).join('[redacted]')
+  }
+
+  return message || 'Unknown email error'
+}
+
+async function sendWithResend(params: {
+  to: string
+  subject: string
+  html: string
+  text: string
+}) {
+  const resend = getResendClient()
+  const from = getSenderAddress()
+
+  const { data, error } = await resend.emails.send({
+    from,
+    to: params.to,
+    subject: params.subject,
+    html: params.html,
+    text: params.text,
+  })
+
+  if (error) {
+    console.error('[email] Resend send failed:', safeErrorMessage(error))
+    throw new Error('Email delivery failed')
+  }
+
+  return data
+}
+
+async function sendWithDevFallback(params: {
+  to: string
+  subject: string
+  html: string
+  text: string
+  debugLabel: string
+  debugUrl?: string
+}) {
+  const transport = getDevTransporter()
+  const result = await transport.sendMail({
+    from: getSenderAddress(),
+    to: params.to,
+    subject: params.subject,
+    html: params.html,
+    text: params.text,
+  })
+
+  if (usingJsonTransport) {
+    console.log(`[email] ${params.debugLabel} (dev — no email provider configured):`, JSON.stringify(result, null, 2))
+    if (params.debugUrl) {
+      console.log(`[email] URL:`, params.debugUrl)
+    }
+  }
+}
+
+async function deliverEmail(params: {
+  to: string
+  subject: string
+  html: string
+  text: string
+  debugLabel: string
+  debugUrl?: string
+}) {
+  if (shouldUseResend()) {
+    if (isProduction() || hasResendConfig()) {
+      await sendWithResend(params)
+      return
+    }
+  }
+
+  if (isProduction()) {
+    throw new Error('Resend email service is not fully configured in production')
+  }
+
+  await sendWithDevFallback(params)
+}
+
+export async function verifyEmailService(): Promise<void> {
   try {
     if (isProduction()) {
-      assertProductionSmtpConfig()
-    }
-
-    if (!hasRealSmtpConfig()) {
-      if (isProduction()) {
-        console.error('[email] SMTP verification failed: SMTP is not fully configured in production')
-      } else {
-        console.log('[email] Skipping SMTP verification (jsonTransport / no SMTP configured)')
-      }
+      assertProductionResendConfig()
+      console.log('[email] Resend configured')
+      console.log(`from: ${config.emailFrom}`)
       return
     }
 
-    const transport = getTransporter()
-    await transport.verify()
-    console.log('[email] SMTP verification succeeded')
+    if (hasResendConfig()) {
+      console.log('[email] Resend configured (development)')
+      console.log(`from: ${config.emailFrom}`)
+      return
+    }
+
+    if (hasRealSmtpConfig()) {
+      console.log('[email] Dev SMTP available as fallback')
+      return
+    }
+
+    console.log('[email] No Resend/SMTP configured — using jsonTransport console fallback in development')
   } catch (error) {
-    console.error(`[email] SMTP verification failed: ${safeErrorMessage(error)}`)
+    console.error(`[email] Email service verification failed: ${safeErrorMessage(error)}`)
   }
+}
+
+/** @deprecated Use verifyEmailService */
+export async function verifyEmailTransport(): Promise<void> {
+  return verifyEmailService()
 }
 
 export async function sendInvitationEmail(params: {
@@ -156,21 +281,14 @@ export async function sendInvitationEmail(params: {
     </div>
   `
 
-  const mail = {
-    from: config.smtp.from,
+  await deliverEmail({
     to: params.to,
     subject,
-    text,
     html,
-  }
-
-  const transport = getTransporter()
-  const result = await transport.sendMail(mail)
-
-  if (usingJsonTransport) {
-    console.log('[email] Invitation (dev — no SMTP configured):', JSON.stringify(result, null, 2))
-    console.log('[email] Accept URL:', params.acceptUrl)
-  }
+    text,
+    debugLabel: 'Invitation',
+    debugUrl: params.acceptUrl,
+  })
 }
 
 export async function sendPasswordResetEmail(params: {
@@ -276,19 +394,12 @@ export async function sendPasswordResetEmail(params: {
     </html>
   `
 
-  const mail = {
-    from: config.smtp.from,
+  await deliverEmail({
     to: params.to,
     subject,
-    text,
     html,
-  }
-
-  const transport = getTransporter()
-  const result = await transport.sendMail(mail)
-
-  if (usingJsonTransport) {
-    console.log('[email] Password reset (dev — no SMTP configured):', JSON.stringify(result, null, 2))
-    console.log('[email] Reset URL:', params.resetUrl)
-  }
+    text,
+    debugLabel: 'Password reset',
+    debugUrl: params.resetUrl,
+  })
 }

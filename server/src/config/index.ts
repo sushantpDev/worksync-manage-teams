@@ -14,12 +14,15 @@ export const config = {
     refreshExpiry: process.env.JWT_REFRESH_EXPIRY ?? '7d',
   },
   clientUrl: process.env.CLIENT_URL ?? 'http://localhost:5173',
+  resendApiKey: envTrim('RESEND_API_KEY'),
+  emailFrom: envTrim('EMAIL_FROM'),
   smtp: {
     host: envTrim('SMTP_HOST'),
     port: parseInt(process.env.SMTP_PORT ?? '587', 10),
     secure: process.env.SMTP_SECURE === 'true',
     user: envTrim('SMTP_USER'),
-    pass: envTrim('SMTP_PASS'),
+    // Gmail app passwords are often copied with spaces; SMTP auth expects continuous chars.
+    pass: envTrim('SMTP_PASS').replace(/\s+/g, ''),
     from: envTrim('SMTP_FROM') || 'WorkSync <noreply@worksync.app>',
   },
   invitationExpiryDays: parseInt(process.env.INVITATION_EXPIRY_DAYS ?? '7', 10),
